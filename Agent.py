@@ -21,7 +21,6 @@ import operator
 
 ptype = ""
 q = []
-a = ['1', '2', '3', '4', '5', '6']
 probA = {'1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0}
 questions = collections.OrderedDict()
 answers = collections.OrderedDict()
@@ -55,11 +54,12 @@ class Agent:
         global answers
         global probA
 
+        a = ['1', '2', '3', '4', '5', '6']
         pname = p.name
         ptype = p.problemType
         figures = p.figures
 
-        if "Basic Problem C" in pname:
+        if "Basic Problem B" in pname:
             print(pname + "\n" + ptype)
 
             if "2x2" in ptype:
@@ -168,10 +168,10 @@ class Agent:
         description = {'number': '', 'percentageDifference': ''}
         transformations = {'fill': '', 'difference': '', 'flip': '', 'mirror': ''}
         print('------------------------ FINDING PATTERNS ....... --------------------------')
-        count = 1 # count to 2
+        transformationCount = 1 # count to 2
+        differenceCount = 1
         fillList = []
         rst1 = 0
-        rst2 = 0
         for a in cmpList:
             imglist = []
             for b in a:
@@ -191,31 +191,43 @@ class Agent:
                 #transformations['fill'] = fill
                 fillList = self.GetFillRatio(imglist, transformations['fill'])
                 print(fillList)
-                if count == 1: # for A,B,C
+                if transformationCount == 1: # for A,B,C
                     val1 = round(fillList[0], 2)
                     val2 = round(fillList[1], 2)
-                    val3 = round(fillList[2], 2)
-                    rst1 = abs((val3 - val2)- (val2 - val1))
+                    if len(fillList) == 3:
+                        val3 = round(fillList[2], 2)
+                        rst1 = abs((val3 - val2)- (val2 - val1))
+                    else:
+                        rst1 = abs(val2 - val1)
+                        number = rst1
+                    valToCompare = int(round(rst1 * 100))
                     print('result in diff of 1 %.2f' %rst1)
                     if number != -1:
                         number = round(number, 2)
-                        percentDiff = self.GetDiff(rst1, number)
-                        description['number'] = rst1
+                        print('this is number')
+                        print(number)
+                        percentDiff = self.GetDiff(valToCompare, number)
+                        description['number'] = valToCompare
                         description['percentageDifference'] = percentDiff
                         print('description ')
                         print(description)
-                elif count == 2: # for D,E,F
+                elif transformationCount == 2: # for D,E,F
                     val1 = round(fillList[0], 2)
                     val2 = round(fillList[1], 2)
                     val3 = round(fillList[2], 2)
                     rst2 = abs((val3 - val2)- (val2 - val1))
                     print('result in diff of 2 %.2f' % rst2)
                     percentDiff = self.GetDiff(rst1, rst2)
-                    description['number'] = abs((rst2 - rst1))
+                    description['number'] = int(round(((rst1+rst2)/2) * 100))
                     description['percentageDifference'] = percentDiff
                     print('description ')
                     print(description)
-                count+=1
+                    transformationCount+=1
+            if transformations['difference'] != 'na':
+                diff = self.getDifference(imglist, transformations['difference'])
+                # print("DIFF IS BEING SET TO ---------- %.2f" % (diff))
+                transformations['difference'] = diff
+                differenceCount+=1
         return description
 
 
@@ -530,7 +542,11 @@ class Agent:
             print('ERROR: IN getDistance function ---  images do not have same number of pixels')
 
     def GetDiff(self, x,y):
-        return abs(x-y)
+        rst = 0
+        xint = int(round(x * 100))
+        yint = int(round(y * 100))
+        rst = abs(yint - xint)
+        return rst/2
 
     # generic function
     def getPercentageDiff(self, x, y):

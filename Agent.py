@@ -53,13 +53,17 @@ class Agent:
         global problem
         global answers
         global probA
+        global diffBetween
+        global fillBetween
+        global pDiffBetween
+        global col2Diff
 
         a = ['1', '2', '3', '4', '5', '6']
         pname = p.name
         ptype = p.problemType
         figures = p.figures
 
-        if "Basic Problem B" in pname:
+        if "Basic Problem C" in pname:
             print(pname + "\n" + ptype)
 
             if "2x2" in ptype:
@@ -175,6 +179,10 @@ class Agent:
         return rst1
 
     def FindPatterns(self, cmpList, fillNumber, differenceNumber):
+        global diffBetween
+        global fillBetween
+        global pDiffBetween
+        global col2Diff
         description = {'fillNumber': '', 'fPercentageDifference': '', 'differenceNumber': '', 'dPercentageDifference': ''}
         transformations = {'fill': '', 'difference': '', 'flip': '', 'mirror': ''}
         print('------------------------ FINDING PATTERNS ....... --------------------------')
@@ -203,67 +211,73 @@ class Agent:
                 print(fillList)
                 # this needs to be refactored. Repeating self here !!
                 if transformationCount == 1: # for A,B,C
-                    rst1 = self.GetFillRst(fillList)
-                    if len(fillList) == 2:
-                        fillNumber = rst1
-                    valToCompare = int(round(rst1 * 100))
+                    rst1 = round(self.GetFillRst(fillList), 2)
+                    #valToCompare = int(round(rst1 * 100))
                     print('result in diff of 1 %.2f' %rst1)
-                    if fillNumber != -1:
+                    if fillNumber != -1: # no need for this check
                         fillNumber = round(fillNumber, 2)
+                        valToCompare = abs(fillBetween - fillNumber)
                         percentDiff = self.GetDiff(valToCompare, fillNumber)
                         description['fillNumber'] = valToCompare
                         description['fPercentageDifference'] = percentDiff
                         print('description ')
                         print(description)
                 elif transformationCount == 2: # for D,E,F
-                    rst2 = self.GetFillRst(fillList)
+                    rst2 = round(self.GetFillRst(fillList), 2)
+                    fillBetween = rst2
                     print('result in diff of 2 %.2f' % rst2)
                     percentDiff = self.GetDiff(rst1, rst2)
-                    description['fillNumber'] = int(round(((rst1+rst2)/2) * 100))
+                    description['fillNumber'] = abs(rst2 - rst1)
                     description['fPercentageDifference'] = percentDiff
                     print('description ')
                     print(description)
-                    transformationCount+=1
+                transformationCount+=1
             if transformations['difference'] != 'na':
                 diffList = self.GetDifference(imglist, transformations['difference'])
                 # print("DIFF IS BEING SET TO ---------- %.2f" % (diff))
                 transformations['difference'] = diffList
                 print(diffList)
                 if differenceCount == 1:
-                    val1 = round(diffList[0], 2)
-                    rst = abs(val1)
-                    if len(diffList) == 2:
-                        val2 = round(diffList[1], 2)
-                        rst = abs(val2 - val1)
-                    else:
-                        differenceNumber = rst # differenceNumber is rst if this is initial
-                    valToCompare = int(round(rst * 100))
-                    print('result of difference in 1 is %.2f' %rst)
+                    diffrst1 = self.GetDifferenceRst(diffList)
+                    #valToCompare = int(round(rst1 * 100))
+                    print('result of difference in 1 is %.2f' %diffrst1)
                     if differenceNumber != -1:
+                        diff = self.GetDiffNumber(col2Diff, diffrst1)
+                        percentDiff = self.GetDiff(differenceNumber, diff)
                         differenceNumber = round(differenceNumber, 2)
-                        if differenceNumber != 0:
-                            percentDiff = abs(valToCompare / differenceNumber)
-                        else:
-                            percentDiff = differenceNumber
-                        description['differenceNumber'] = differenceNumber
+                        valToCompare = abs(diffBetween - diffrst1)
+                        #percentDiff = self.GetPDiff(valToCompare, differenceNumber, pDiffBetween)
+                        description['differenceNumber'] = valToCompare
                         description['dPercentageDifference'] = percentDiff
                         print('description is ')
                         print(description)
-                elif differenceCount == 2:
-                    val1 = round(diffList[0], 2)
-                    if len(diffList) == 2:
-                        val2 = round(diffList[1], 2)
-                        rst = abs(val2 - val1)
-
-
-
-
+                elif differenceCount == 2: # on second run for D,E,F
+                    diffrst2 = self.GetDifferenceRst(diffList)
+                    diffBetween = diffrst2
+                    print('result of difference in 2 is %.2f' % diffrst2)
+                    col2Diff = diffrst2
+                    percentDiff = self.GetDiff(diffrst1, diffrst2)
+                    description['differenceNumber'] = abs(diffrst2 - diffrst1)
+                    description['dPercentageDifference'] = percentDiff
+                    print('description is ')
+                    print(description)
+                    pDiffBetween = percentDiff
                 differenceCount+=1
         return description
 
+    def GetDiffNumber(self, col2Diff, diffrst1):
+        rst = abs(col2Diff - diffrst1)
+        if rst <= 600:
+            rst = 0
+        return rst
 
-
-
+    def GetDifferenceRst(self, diffList):
+        val1 = round(diffList[0], 2)
+        rst = abs(val1)
+        if len(diffList) == 2: #3*3
+            val2 = round(diffList[1], 2)
+            rst = self.GetDiffNumber(val2, val1)
+        return rst
 
     def findPatterns(self, cmpList):
         transformations = {'fill': '', 'difference': '', 'flip': '', 'mirror': ''}
@@ -317,7 +331,7 @@ class Agent:
             print('Result for answer')
             print(desc)
             probableanswers[i] = prob
-
+        print('Result for all answers')
         print (probableanswers)
         return probableanswers
 
@@ -367,7 +381,7 @@ class Agent:
             if givenvalue != 'na' and predictedvalue != 'na':
                 if givenvalue + predictedvalue != 0:
                     # percentdiff += (abs((givenvalue - predictedvalue)) / ((givenvalue + predictedvalue) / 2)) * 100
-                    percentdiff += self.getPercentageDiff(givenvalue, predictedvalue)
+                    percentdiff += self.GetDiff(givenvalue, predictedvalue)
             else:
                 percentdiff += 100000
 
@@ -437,8 +451,6 @@ class Agent:
 
             diffList.append(dist1)
             diffList.append(dist2)
-            print("<><><><><> dist1 -------- %.2f" % (dist1))
-            print("<><><><><> dist2 -------- %.2f" % (dist2))
 
             if dist1 + dist2 != 0:
                 print("FINDING --- PERCENT DIFFERENCE FOR IMG DIFF VALUES")
@@ -608,8 +620,12 @@ class Agent:
         else:
             print('ERROR: IN getDistance function ---  images do not have same number of pixels')
 
+    def GetPDiff(self, x, y, originalPDiff):
+        diff = self.GetDiff(x, y)
+        rst = abs(originalPDiff - diff)
+        return rst
+
     def GetDiff(self, x,y):
-        rst = 0
         xint = int(round(x * 100))
         yint = int(round(y * 100))
         rst = abs(yint - xint)

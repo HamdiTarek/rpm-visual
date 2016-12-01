@@ -178,11 +178,11 @@ class Agent:
             rst1 = abs(val2 - val1)
         return rst1
 
+#fillNumber and differenceNumber will be redundant. Please remove
     def FindPatterns(self, cmpList, fillNumber, differenceNumber):
         global diffBetween
         global fillBetween
         global pDiffBetween
-        global col2Diff
         description = {'fillNumber': '', 'fPercentageDifference': '', 'differenceNumber': '', 'dPercentageDifference': ''}
         transformations = {'fill': '', 'difference': '', 'flip': '', 'mirror': ''}
         print('------------------------ FINDING PATTERNS ....... --------------------------')
@@ -205,8 +205,6 @@ class Agent:
 
             # FILL TRANSFORMATION
             if transformations['fill'] != 'nal':
-                #fill = self.getFillRatio(imglist, transformations['fill'])
-                #transformations['fill'] = fill
                 fillList = self.GetFillRatio(imglist, transformations['fill'])
                 print(fillList)
                 # this needs to be refactored. Repeating self here !!
@@ -216,7 +214,7 @@ class Agent:
                     print('result in diff of 1 %.2f' %rst1)
                     if fillNumber != -1: # no need for this check
                         fillNumber = round(fillNumber, 2)
-                        valToCompare = abs(fillBetween - fillNumber)
+                        valToCompare = abs(fillBetween - rst1) #C,D,E to answer
                         percentDiff = self.GetDiff(valToCompare, fillNumber)
                         description['fillNumber'] = valToCompare
                         description['fPercentageDifference'] = percentDiff
@@ -224,7 +222,7 @@ class Agent:
                         print(description)
                 elif transformationCount == 2: # for D,E,F
                     rst2 = round(self.GetFillRst(fillList), 2)
-                    fillBetween = rst2
+                    fillBetween = rst2 #storing this so I compare with answers
                     print('result in diff of 2 %.2f' % rst2)
                     percentDiff = self.GetDiff(rst1, rst2)
                     description['fillNumber'] = abs(rst2 - rst1)
@@ -242,10 +240,9 @@ class Agent:
                     #valToCompare = int(round(rst1 * 100))
                     print('result of difference in 1 is %.2f' %diffrst1)
                     if differenceNumber != -1:
-                        diff = self.GetDiffNumber(col2Diff, diffrst1)
-                        percentDiff = self.GetDiff(differenceNumber, diff)
                         differenceNumber = round(differenceNumber, 2)
                         valToCompare = abs(diffBetween - diffrst1)
+                        percentDiff = self.GetDiff(valToCompare, differenceNumber)
                         #percentDiff = self.GetPDiff(valToCompare, differenceNumber, pDiffBetween)
                         description['differenceNumber'] = valToCompare
                         description['dPercentageDifference'] = percentDiff
@@ -255,7 +252,6 @@ class Agent:
                     diffrst2 = self.GetDifferenceRst(diffList)
                     diffBetween = diffrst2
                     print('result of difference in 2 is %.2f' % diffrst2)
-                    col2Diff = diffrst2
                     percentDiff = self.GetDiff(diffrst1, diffrst2)
                     description['differenceNumber'] = abs(diffrst2 - diffrst1)
                     description['dPercentageDifference'] = percentDiff

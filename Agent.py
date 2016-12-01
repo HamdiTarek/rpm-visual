@@ -90,7 +90,7 @@ class Agent:
             # img1 = Image.open(questions['A'])
             # img2 = Image.open(questions['B'])
 
-            horizontaltrans = self.FindPatterns(row, -1)
+            horizontaltrans = self.FindPatterns(row, -1, -1)
             #verticaltrans = self.FindPatterns(col, -1)
 
             hans = self.FindAnswer(horizontaltrans, r, a)
@@ -164,8 +164,18 @@ class Agent:
             answers[j] = p[j]
             qna[j] = p[j]
 
-    def FindPatterns(self, cmpList, number):
-        description = {'number': '', 'percentageDifference': ''}
+    def GetFillRst(self, fillList):
+        val1 = round(fillList[0], 2)
+        val2 = round(fillList[1], 2)
+        if len(fillList) == 3:
+            val3 = round(fillList[2], 2)
+            rst1 = abs((val3 - val2) - (val2 - val1))
+        else:
+            rst1 = abs(val2 - val1)
+        return rst1
+
+    def FindPatterns(self, cmpList, fillNumber, differenceNumber):
+        description = {'fillNumber': '', 'fPercentageDifference': '', 'differenceNumber': '', 'dPercentageDifference': ''}
         transformations = {'fill': '', 'difference': '', 'flip': '', 'mirror': ''}
         print('------------------------ FINDING PATTERNS ....... --------------------------')
         transformationCount = 1 # count to 2
@@ -191,42 +201,63 @@ class Agent:
                 #transformations['fill'] = fill
                 fillList = self.GetFillRatio(imglist, transformations['fill'])
                 print(fillList)
+                # this needs to be refactored. Repeating self here !!
                 if transformationCount == 1: # for A,B,C
-                    val1 = round(fillList[0], 2)
-                    val2 = round(fillList[1], 2)
-                    if len(fillList) == 3:
-                        val3 = round(fillList[2], 2)
-                        rst1 = abs((val3 - val2)- (val2 - val1))
-                    else:
-                        rst1 = abs(val2 - val1)
-                        number = rst1
+                    rst1 = self.GetFillRst(fillList)
+                    if len(fillList) == 2:
+                        fillNumber = rst1
                     valToCompare = int(round(rst1 * 100))
                     print('result in diff of 1 %.2f' %rst1)
-                    if number != -1:
-                        number = round(number, 2)
-                        print('this is number')
-                        print(number)
-                        percentDiff = self.GetDiff(valToCompare, number)
-                        description['number'] = valToCompare
-                        description['percentageDifference'] = percentDiff
+                    if fillNumber != -1:
+                        fillNumber = round(fillNumber, 2)
+                        percentDiff = self.GetDiff(valToCompare, fillNumber)
+                        description['fillNumber'] = valToCompare
+                        description['fPercentageDifference'] = percentDiff
                         print('description ')
                         print(description)
                 elif transformationCount == 2: # for D,E,F
-                    val1 = round(fillList[0], 2)
-                    val2 = round(fillList[1], 2)
-                    val3 = round(fillList[2], 2)
-                    rst2 = abs((val3 - val2)- (val2 - val1))
+                    rst2 = self.GetFillRst(fillList)
                     print('result in diff of 2 %.2f' % rst2)
                     percentDiff = self.GetDiff(rst1, rst2)
-                    description['number'] = int(round(((rst1+rst2)/2) * 100))
-                    description['percentageDifference'] = percentDiff
+                    description['fillNumber'] = int(round(((rst1+rst2)/2) * 100))
+                    description['fPercentageDifference'] = percentDiff
                     print('description ')
                     print(description)
                     transformationCount+=1
             if transformations['difference'] != 'na':
-                diff = self.getDifference(imglist, transformations['difference'])
+                diffList = self.GetDifference(imglist, transformations['difference'])
                 # print("DIFF IS BEING SET TO ---------- %.2f" % (diff))
-                transformations['difference'] = diff
+                transformations['difference'] = diffList
+                print(diffList)
+                if differenceCount == 1:
+                    val1 = round(diffList[0], 2)
+                    rst = abs(val1)
+                    if len(diffList) == 2:
+                        val2 = round(diffList[1], 2)
+                        rst = abs(val2 - val1)
+                    else:
+                        differenceNumber = rst # differenceNumber is rst if this is initial
+                    valToCompare = int(round(rst * 100))
+                    print('result of difference in 1 is %.2f' %rst)
+                    if differenceNumber != -1:
+                        differenceNumber = round(differenceNumber, 2)
+                        if differenceNumber != 0:
+                            percentDiff = abs(valToCompare / differenceNumber)
+                        else:
+                            percentDiff = differenceNumber
+                        description['differenceNumber'] = differenceNumber
+                        description['dPercentageDifference'] = percentDiff
+                        print('description is ')
+                        print(description)
+                elif differenceCount == 2:
+                    val1 = round(diffList[0], 2)
+                    if len(diffList) == 2:
+                        val2 = round(diffList[1], 2)
+                        rst = abs(val2 - val1)
+
+
+
+
                 differenceCount+=1
         return description
 
@@ -273,18 +304,19 @@ class Agent:
         return transformations
 
     def FindAnswer(self, description, r, a):
-        numberDiff = description['number']
+        fillNumberDiff = description['fillNumber']
+        differenceNumberDiff = description['differenceNumber']
         probableanswers = {}
         print('Searching for answers ........')
         for i in a:
             imglist = list(r)
             imglist.append(i)
             imageList = [imglist]
-            desc = self.FindPatterns(imageList, numberDiff)
-            #prob = self.comparePatterns(description, desc)
-            print('Result from answers')
+            desc = self.FindPatterns(imageList, fillNumberDiff, differenceNumberDiff)
+            prob = self.comparePatterns(description, desc)
+            print('Result for answer')
             print(desc)
-            probableanswers[i] = desc['percentageDifference']
+            probableanswers[i] = prob
 
         print (probableanswers)
         return probableanswers
@@ -381,6 +413,41 @@ class Agent:
             fillratio = blackCount / totalCount
             fillratiolist.append(fillratio)
         return fillratiolist
+
+
+    def GetDifference(self, imglist, target):
+        # finding pixel difference between images using the get distance function
+        # get distance function finds euclidean distance for each RGB pixel value
+        diffList = []
+        if len(imglist) == 2:
+            img1 = imglist[0]
+            img2 = imglist[1]
+            dist = self.getDistance(img1, img2)
+            print("<><><><><> dist1 -------- %.2f" % (dist))
+            diffList.append(dist)
+
+        # if 3x3 matrix then find percentage difference between img1, img2 difference and
+        # img2, img3 difference
+        else:
+            img1 = imglist[0]
+            img2 = imglist[1]
+            img3 = imglist[2]
+            dist1 = self.getDistance(img1, img2)
+            dist2 = self.getDistance(img2, img3)
+
+            diffList.append(dist1)
+            diffList.append(dist2)
+            print("<><><><><> dist1 -------- %.2f" % (dist1))
+            print("<><><><><> dist2 -------- %.2f" % (dist2))
+
+            if dist1 + dist2 != 0:
+                print("FINDING --- PERCENT DIFFERENCE FOR IMG DIFF VALUES")
+                # diff = (abs(dist1-dist2)/((dist1+dist2)/2))*100
+                diff = self.getPercentageDiff(dist1, dist2)
+                print(diff)
+            else:
+                diff = 0
+        return diffList
 
     # transformation function
     def getFillRatio(self, imglist, target):
